@@ -48,8 +48,8 @@ RUN wget https://mosquitto.org/files/source/mosquitto-1.4.15.tar.gz \
 
 # Download/ set execute on /docker-entrypoint.sh
 WORKDIR /
-RUN wget -O docker-entrypoint.sh https://gist.githubusercontent.com/coldfire84/6e82c93dde7bbff2172329554af408fe/raw/6584308375d2f62e22b62f7a13a7ead8eb2e6437/docker-entrypoint.sh \
-    &&  chmod +x /docker-entrypoint.sh
+ADD docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
 # Cleanup
 RUN apt-get remove -y cmake git wget pkg-config \
