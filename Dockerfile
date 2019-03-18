@@ -4,12 +4,13 @@ LABEL maintainer="Chris Bradford <chrismbradford@gmail.com>"
 
 # Install Dependencies / Required Services
 RUN set -x \
-    && apk --no-cache add --virtual build-deps \
-    build-base git cmake gnupg libressl-dev util-linux-dev
+    && apk --no-cache add \
+    build-base git cmake libressl-dev cyrus-sasl-dev util-linux-dev curl-dev c-ares-dev
 
 # Compile and Install Mosquitto 1.5.8
 WORKDIR /usr/local/src
 RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
+    && apk --no-cache add libuuid c-ares libressl cyrus-sasl curl ca-certificates \
     && tar xvzf ./mosquitto-1.5.8.tar.gz \
     && cd mosquitto-1.5.8 \
     && make -j "$(nproc)" \
@@ -22,8 +23,6 @@ RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
        WITH_SRV=no \
        WITH_STRIP=yes \
        WITH_TLS_PSK=no \
-       prefix=/usr \
-       binary \
     && make install
 
 WORKDIR /usr/local/src
@@ -44,8 +43,14 @@ RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.14.0/mong
     && mkdir -p cmake-build \
     && cd /usr/local/src/mongo-c-driver-1.14.0/cmake-build \
     && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF .. \
-    && make -j "$(nproc)" prefix=/usr \
+    && make -j "$(nproc)" \
     && make install \
+    && install -s -m755 src/libbson/libbson-1.0.so.0.0.0 /usr/local/lib/ \
+    && ln -s /usr/local/lib/libbson-1.0.so.0.0.0 /usr/local/lib/libbson-1.0.so \
+    && ln -s /usr/local/lib/libbson-1.0.so.0.0.0 /usr/local/lib/libbson-1.0.so.0 \
+    && install -s -m755 src/libmongoc/libmongoc-1.0.so.0.0.0 /usr/local/lib/ \
+    && ln -s /usr/local/lib/libmongoc-1.0.so.0.0.0 /usr/local/lib/libmongoc-1.0.so \
+    && ln -s /usr/local/lib/libmongoc-1.0.so.0.0.0 /usr/local/lib/libmongoc-1.0.so.0 \
     && cd /usr/local/src \
     && rm mongo-c-driver-1.14.0.tar.gz \
     && rm -rf mongo-c-driver-1.14.0
@@ -60,16 +65,15 @@ RUN git clone --single-branch -b subscribe_check_fix https://github.com/whendonk
     && sed -i "s|MOSQUITTO_SRC =|MOSQUITTO_SRC = /usr/local/src/mosquitto-1.5.8|g" config.mk \
     && export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/ \
     && make -j "$(nproc)" \
-    && cp auth-plug.so /usr/local/src \
-    && cp np /usr/local/bin/ && chmod +x /usr/local/bin/np \
+    && install -s -m755 auth-plug.so /usr/local/lib/ \
+    && install -s -m755 np /usr/local/bin/ \
     && cd /usr/local/src \
     && rm -rf /usr/local/src/mosquitto-auth-plug \
-    && rm -rf mosquitto-1.5.8
+    && rm -rf mosquitto-1.5.8 \
+    && rm mosquitto-1.5.8.tar.gz
 
 # Cleanup
-RUN apk --no-cache add \
-    libuuid \
-    && apk del build-deps
+# RUN apk del build-deps
 
 VOLUME ["/mosquitto/data", "/mosquitto/log"]
 
@@ -79,3 +83,5 @@ RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+
+# sudo docker build -t mosquitto:0.2 -f Dockerfile .
