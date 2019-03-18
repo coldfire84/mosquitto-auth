@@ -66,11 +66,6 @@ RUN git clone --single-branch -b subscribe_check_fix https://github.com/whendonk
     && rm -rf /usr/local/src/mosquitto-auth-plug \
     && rm -rf mosquitto-1.5.8
 
-# Download/ set execute on /docker-entrypoint.sh
-WORKDIR /
-ADD docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
-
 # Cleanup
 RUN apk --no-cache add \
     libuuid \
@@ -78,7 +73,11 @@ RUN apk --no-cache add \
 
 VOLUME ["/mosquitto/data", "/mosquitto/log"]
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Set up the entry point script and default command
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
-# Execute mosquitto 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+
+# sudo docker build -t mosquitto:0.2 -f Dockerfile .
