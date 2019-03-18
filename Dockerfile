@@ -60,8 +60,8 @@ RUN git clone --single-branch -b subscribe_check_fix https://github.com/whendonk
     && sed -i "s|MOSQUITTO_SRC =|MOSQUITTO_SRC = /usr/local/src/mosquitto-1.5.8|g" config.mk \
     && export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/ \
     && make -j "$(nproc)" \
-    && install -s -m755 auth-plug.so /usr/local/src/ \
-    && install -s -m755 np /usr/local/bin/ \
+    && cp auth-plug.so /usr/local/src \
+    && cp np /usr/local/bin/ && chmod +x /usr/local/bin/np \
     && cd /usr/local/src \
     && rm -rf /usr/local/src/mosquitto-auth-plug \
     && rm -rf mosquitto-1.5.8
@@ -79,5 +79,3 @@ RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
-
-# sudo docker build -t mosquitto:0.2 -f Dockerfile .
