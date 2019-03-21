@@ -1,16 +1,16 @@
-FROM alpine:3.8
+FROM alpine:3.9.2
 
 LABEL maintainer="Chris Bradford <chrismbradford@gmail.com>"
 
+ENV PATH=/usr/local/bin:/usr/local/sbin:$PATH
+
 # Install Dependencies / Required Services
-RUN set -x \
-    && apk --no-cache add \
-    build-base git cmake libressl-dev cyrus-sasl-dev util-linux-dev curl-dev c-ares-dev
+RUN apk --no-cache --virtual build-deps add   \
+    build-base git cmake cyrus-sasl-dev util-linux-dev curl-dev c-ares-dev libressl-dev py3-sphinx libtool snappy-dev
 
 # Compile and Install Mosquitto 1.5.8
 WORKDIR /usr/local/src
 RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
-    && apk --no-cache add libuuid c-ares libressl cyrus-sasl curl ca-certificates \
     && tar xvzf ./mosquitto-1.5.8.tar.gz \
     && cd mosquitto-1.5.8 \
     && make -j "$(nproc)" \
@@ -23,6 +23,7 @@ RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
        WITH_SRV=no \
        WITH_STRIP=yes \
        WITH_TLS_PSK=no \
+       binary \
     && make install
 
 WORKDIR /usr/local/src
@@ -40,17 +41,23 @@ WORKDIR /usr/local/src
 RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.14.0/mongo-c-driver-1.14.0.tar.gz \
     && tar zxf ./mongo-c-driver-1.14.0.tar.gz \
     && cd /usr/local/src/mongo-c-driver-1.14.0/ \
-    && mkdir -p cmake-build \
-    && cd /usr/local/src/mongo-c-driver-1.14.0/cmake-build \
-    && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF .. \
+    && mkdir -p build \
+    && cd /usr/local/src/mongo-c-driver-1.14.0/build \
+    && apk --no-cache add snappy cyrus-sasl \
+    && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DENABLE_BSON:STRING=ON \
+        -DENABLE_MONGOC:BOOL=ON \
+        -DENABLE_SSL:STRING=LIBRESSL \
+        -DENABLE_AUTOMATIC_INIT_AND_CLEANUP:BOOL=OFF \
+        -DENABLE_MAN_PAGES:BOOL=OFF \
+        -DENABLE_EXAMPLES:BOOL=OFF \
+        -DSPHINX_EXECUTABLE:STRING=/usr/bin/sphinx-build-3 \
+        -DCMAKE_SKIP_RPATH=ON .. \
     && make -j "$(nproc)" \
     && make install \
-    && install -s -m755 src/libbson/libbson-1.0.so.0.0.0 /usr/local/lib/ \
-    && ln -s /usr/local/lib/libbson-1.0.so.0.0.0 /usr/local/lib/libbson-1.0.so \
-    && ln -s /usr/local/lib/libbson-1.0.so.0.0.0 /usr/local/lib/libbson-1.0.so.0 \
-    && install -s -m755 src/libmongoc/libmongoc-1.0.so.0.0.0 /usr/local/lib/ \
-    && ln -s /usr/local/lib/libmongoc-1.0.so.0.0.0 /usr/local/lib/libmongoc-1.0.so \
-    && ln -s /usr/local/lib/libmongoc-1.0.so.0.0.0 /usr/local/lib/libmongoc-1.0.so.0 \
     && cd /usr/local/src \
     && rm mongo-c-driver-1.14.0.tar.gz \
     && rm -rf mongo-c-driver-1.14.0
@@ -63,7 +70,7 @@ RUN git clone --single-branch -b subscribe_check_fix https://github.com/whendonk
     && sed -i "s|BACKEND_MONGO ?= no|BACKEND_MONGO ?= yes|g" config.mk \
     && sed -i "s|BACKEND_MYSQL ?= yes|BACKEND_MYSQL ?= no|g" config.mk \
     && sed -i "s|MOSQUITTO_SRC =|MOSQUITTO_SRC = /usr/local/src/mosquitto-1.5.8|g" config.mk \
-    && export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig/ \
+    && make clean \
     && make -j "$(nproc)" \
     && install -s -m755 auth-plug.so /usr/local/lib/ \
     && install -s -m755 np /usr/local/bin/ \
@@ -73,7 +80,8 @@ RUN git clone --single-branch -b subscribe_check_fix https://github.com/whendonk
     && rm mosquitto-1.5.8.tar.gz
 
 # Cleanup
-# RUN apk del build-deps
+RUN apk --no-cache add libuuid c-ares libressl ca-certificates \
+    && apk del build-deps
 
 VOLUME ["/mosquitto/data", "/mosquitto/log"]
 
@@ -83,5 +91,3 @@ RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
-
-# sudo docker build -t mosquitto:0.2 -f Dockerfile .
