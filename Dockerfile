@@ -6,11 +6,10 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:$PATH
 
 # Install Dependencies / Required Services
 RUN apk --no-cache --virtual build-deps add   \
-    build-base git cmake cyrus-sasl-dev util-linux-dev curl-dev c-ares-dev libressl-dev py3-sphinx libtool snappy-dev
-
-# Compile and Install Mosquitto 1.5.8
-WORKDIR /usr/local/src
-RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
+    build-base git cmake cyrus-sasl-dev util-linux-dev curl-dev c-ares-dev libressl-dev py3-sphinx libtool snappy-dev \
+    && mkdir -p /usr/local/src \
+    && cd /usr/local/src \
+    && wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
     && tar xvzf ./mosquitto-1.5.8.tar.gz \
     && cd mosquitto-1.5.8 \
     && make -j "$(nproc)" \
@@ -58,7 +57,6 @@ RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
     && cd /usr/local/src \
     && rm mongo-c-driver-1.14.0.tar.gz \
     && rm -rf mongo-c-driver-1.14.0 \
-    && cd /usr/local/src \
     && git clone --single-branch -b subscribe_check_fix https://github.com/whendonkiesfly/mosquitto-auth-plug.git \
     && cd /usr/local/src/mosquitto-auth-plug \
     && cp config.mk.in config.mk \
@@ -73,7 +71,6 @@ RUN wget https://mosquitto.org/files/source/mosquitto-1.5.8.tar.gz \
     && rm -rf /usr/local/src/mosquitto-auth-plug \
     && rm -rf mosquitto-1.5.8 \
     && rm mosquitto-1.5.8.tar.gz \
-    && cd /usr/local/src \
     && apk --no-cache add libuuid c-ares libressl ca-certificates \
     && apk del build-deps
 
