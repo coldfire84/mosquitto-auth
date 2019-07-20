@@ -1,4 +1,4 @@
-FROM alpine:3.9.2
+FROM alpine:latest
 
 LABEL maintainer="Chris Bradford <chrismbradford@gmail.com>"
 
