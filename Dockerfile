@@ -13,17 +13,14 @@ RUN apk --no-cache --virtual build-deps add   \
     && tar xvzf ./mosquitto-1.6.3.tar.gz \
     && cd mosquitto-1.6.3 \
     && make -j "$(nproc)" \
-       CFLAGS="-Wall -O2 -flto" \
+       CFLAGS="-Wall -O2 -flto"  \
        WITH_SRV=yes \
        WITH_ADNS=no \
        WITH_DOCS=no \
        WITH_MEMORY_TRACKING=no \
-       WITH_SHARED_LIBRARIES=no \
-       WITH_SRV=no \
-       WITH_STRIP=yes \
        WITH_TLS_PSK=no \
-       binary \
-    && make install \
+       WITH_WEBSOCKETS=no \
+       install \
     && cd /usr/local/src \
     && addgroup -S -g 1883 mosquitto 2>/dev/null \
     && adduser -S -u 1883 -D -H -h /var/empty -s /sbin/nologin -G mosquitto -g mosquitto mosquitto 2>/dev/null \
