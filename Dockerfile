@@ -54,7 +54,7 @@ RUN apk --no-cache --virtual build-deps add   \
     && cd /usr/local/src \
     && rm mongo-c-driver-1.14.0.tar.gz \
     && rm -rf mongo-c-driver-1.14.0 \
-    && git clone --single-branch -b master https://github.com/wollud1969/mosquitto-auth-plug.git \
+    && git clone --single-branch -b master https://github.com/jllopis/mosquitto-auth-plug.git \
     && cd /usr/local/src/mosquitto-auth-plug \
     && cp config.mk.in config.mk \
     && sed -i "s|BACKEND_MONGO ?= no|BACKEND_MONGO ?= yes|g" config.mk \
